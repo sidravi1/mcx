@@ -1,5 +1,6 @@
+"""Sample from the multivariate distribution defined by the model."""
 from datetime import datetime
-from typing import Callable, Dict, Iterator, Tuple, Union
+from typing import Callable, Dict, Iterator, Tuple
 
 from tqdm import tqdm
 
