@@ -5,8 +5,9 @@ from typing import Any, Callable, Dict, Iterator, Tuple, Optional
 from tqdm import tqdm
 
 import jax
-import jax.numpy as np
+import jax.numpy as jnp
 import mcx
+import numpy as np
 from jax.flatten_util import ravel_pytree as jax_ravel_pytree
 from mcx.jax import ravel_pytree as mcx_ravel_pytree
 from mcx.trace import Trace
@@ -30,14 +31,14 @@ def sample_joint(
     Returns
     -------
     A dictionary {'var_name': samples} where the `samples` array is of
-    shape (num_samples, var_shape).
+    shape (var_dims, n_samples).
     """
     _ = validate_model_args(model, model_args)
 
     keys = jax.random.split(rng_key, num_samples)
 
     # Set vmap's out axes for the random variables
-    out_axes = {rv: 0 for rv in model.random_variables}
+    out_axes = {rv: 1 for rv in model.random_variables}
 
     # Set vmap's in axes for the arguments
     in_axes: Tuple[Optional[int], ...] = (0,)
@@ -50,6 +51,7 @@ def sample_joint(
         in_axes += (None,)
 
     samples = jax.vmap(model.sample_fn, in_axes, out_axes)(*sampler_args)
+    samples = {key: value.squeeze() for key, value in samples.items()}
 
     return samples
 
@@ -172,7 +174,6 @@ class sampler(object):
 
         print("sampler: build and compile the inference kernel")
         kernel_factory = evaluator.kernel_factory(loglikelihood)
-        kernel_factory = kernel_factory
 
         self.is_warmed_up = False
         self.rng_key = rng_key
@@ -321,7 +322,7 @@ class sampler(object):
         num_warmup_steps: int = 1000,
         compile: bool = False,
         **warmup_kwargs,
-    ) -> np.DeviceArray:
+    ) -> jnp.DeviceArray:
         """Run the posterior inference.
 
         For convenience we automatically run the warmup if it hasn't been run
@@ -397,9 +398,9 @@ class sampler(object):
 
 def sample_scan(
     kernel: Callable,
-    init_state: np.DeviceArray,
-    parameters: np.DeviceArray,
-    rng_keys: np.DeviceArray,
+    init_state: jnp.DeviceArray,
+    parameters: jnp.DeviceArray,
+    rng_keys: jnp.DeviceArray,
     num_chains: int,
 ) -> Tuple:
     """Sample using JAX's scan.
@@ -453,9 +454,9 @@ def sample_scan(
 
 def sample_loop(
     kernel: Callable,
-    init_state: np.DeviceArray,
-    parameters: np.DeviceArray,
-    rng_keys: np.DeviceArray,
+    init_state: jnp.DeviceArray,
+    parameters: jnp.DeviceArray,
+    rng_keys: jnp.DeviceArray,
     num_chains: int,
 ) -> Tuple:
     """Sample using a Python loop.
@@ -533,7 +534,7 @@ def sample_loop(
             state, _, ravelled_state = update_loop(state, key)
             chain.append(ravelled_state)
 
-    chain = np.stack(chain)
+    chain = jnp.stack(chain)
     chain = jax.vmap(unravel_fn)(chain)
     last_state = state
 
@@ -644,14 +645,14 @@ def get_initial_position(rng_key, model, model_args, observations, num_chains):
     # array, sorting by key; this gives our flattened positions. We then build
     # a single dictionary that contains the parameters value and use it to get
     # the unraveling function using `unravel_pytree`.
-    positions = np.stack(
+    positions = jnp.stack(
         [np.ravel(initial_positions[s]) for s in sorted(initial_positions.keys())],
         axis=1,
     )
 
-    # np.atleast_1d is necessary to handle single chains
+    # jnp.atleast_1d is necessary to handle single chains
     sample_position_dict = {
-        parameter: np.atleast_1d(values)[0]
+        parameter: jnp.atleast_1d(values)[0]
         for parameter, values in initial_positions.items()
     }
     _, unravel_fn = jax_ravel_pytree(sample_position_dict)
