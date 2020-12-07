@@ -43,8 +43,7 @@ def predict(
 
     Returns
     -------
-    `num_samples` from the predictive distribution.
-
+    An array of shape (num_samples, var_shape) from the predictive distribution.
     """
     _ = validate_model_args(model, model_args)
     keys = jax.random.split(rng_key, num_samples)
@@ -60,6 +59,7 @@ def predict(
 
     # TODO(remi): Handle the case where multiple values are returned.
 
-    samples = jax.vmap(model.call_fn, in_axes, out_axes=1)(*sampler_args)
+    generator, _ = mcx.core.generate(model)
+    samples = jax.vmap(model.call_fn, in_axes, out_axes=0)(*sampler_args)
 
     return samples
