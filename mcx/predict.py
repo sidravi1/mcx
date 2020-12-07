@@ -6,45 +6,24 @@ import jax.numpy as np
 
 from mcx.sample import validate_model_args
 
-__all__ = ["sample_predictive"]
+__all__ = ["predict"]
 
 
-def sample_predictive(
+def predict(
     rng_key: jax.random.PRNGKey,
     model: mcx.model,
     model_args: Tuple[Any],
     num_samples: int = 10,
 ):
-    """Provides a unified interface for prior and posterior predictive sampling.
+    """Provides a unified interface to sample from the prior and posterior
+    predictive distributions.
 
     The rationale behind using the same API for both prior and posterior
-    predictive sampling is simple: both are prediction of the outputs of the
-    generative models. Before and after the model has been evaluated on data.
-
-    Note
-    ----
-    The clunkiness of any prior-posterior predictive sampling API comes from
-    the 'static model + trace' abstraction and would disappear within an
-    'evaluated program' paradigm.
-
-    Parameters
-    ----------
-    rng_key
-        The key used to seed JAX's random number generator.
-    model
-        The model that is used for predictions.
-    trace
-        Samples from the model's posterior distribution computed with the data
-        used for predictions or with another dataset. If specified `predict` will
-        return posterior predictive samples, otherwise prior predictive samples.
-
-    Returns
-    -------
-    Either the prior predictive or posterior predictive class.
-
-    """
-
-    """Generate samples from the prior predictive distribution.
+    predictive sampling is simple: both are the results of simulations of the
+    generative models. The prior predictive distribution corresponds to running
+    the function by sampling from the prior distribution of each parameter; the
+    posterior predictive distribution to simulations where each parameter is
+    distributed according to its posterior distribution.
 
     The input data is broadcasted using numpy's broadcasting rules, and we
     then draw `num_samples` samples from the prior predictive distribution
@@ -53,18 +32,18 @@ def sample_predictive(
 
     Parameters
     ----------
+    rng_key
+        The key used to seed JAX's random number generator.
+    model
+        The model that is used for predictions.
+    model_args
+        The arguments passed to the model. Input data, for instance.
     num_samples
-        The number of prior samples to draw from the posterior predictive
-        distribution.
-    **observations
-        The values of the model's input parameters for which we want to compute
-        predictions.
+        The number of samples to take from the predictive distribution.
 
     Returns
     -------
-    A dictionary that maps each returned variable to an array of shape
-    (data_shape, num_samples) that contains samples from the models' prior
-    predictive distribution.
+    `num_samples` from the predictive distribution.
 
     """
     _ = validate_model_args(model, model_args)
