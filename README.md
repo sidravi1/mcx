@@ -22,7 +22,7 @@ MCX's philosophy
 2. Models should be modular and re-usable.
 3. Inference should be performant and should leverage GPUs.
 
-See the [documentation](https://rlouf.github.io/mcx) for more information.  See [this issue](https://github.com/rlouf/mcx/issues/1) for an updated roadmap for v0.1.
+See the [documentation](https://rlouf.github.io/mcx) for more information. See [this issue](https://github.com/rlouf/mcx/issues/1) for an updated roadmap for v0.1.
 
 ## Current API
 
@@ -33,6 +33,7 @@ slightly.
 from jax import numpy as np
 import mcx
 from mcx.distributions import Exponential, Normal
+from mcx.inference import HMC
 
 rng_key = jax.random.PRNGKey(0)
 observations = {'x': x_data, 'predictions': y_data, 'lmbda': 3.}
@@ -41,18 +42,21 @@ observations = {'x': x_data, 'predictions': y_data, 'lmbda': 3.}
 def linear_regression(x, lmbda=1.):
     scale <~ Exponential(lmbda)
     coefs <~ Normal(np.zeros(np.shape(x)[-1]))
-    y = np.dot(x, coefs)
-    preds <~ Normal(y, scale)
+    preds <~ Normal(np.dot(x, coefs), scale)
     return preds
+    
+prior_predictive = mcx.predict(rng_key, model, args)
 
-kernel = mcx.HMC(100)
-sampler = mcx.sampler(
+posterior = mcx.sampler(
     rng_key,
     linear_regression,
-    kernel,
-    **observations
-)
-posterior = sampler.run()
+    args,
+    observations,
+    HMC(100),
+).run()
+
+evaluated_model = mcx.evaluate(model, posterior)
+posterior_predictive = mcx.predict(rng_key, evaluated_model, args)
 ```
 
 ## MCX's future
