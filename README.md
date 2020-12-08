@@ -30,13 +30,11 @@ Note that there are still many moving pieces in `mcx` and the API may change
 slightly.
 
 ```python
-from jax import numpy as np
+import jax.numpy as np
+
 import mcx
 from mcx.distributions import Exponential, Normal
 from mcx.inference import HMC
-
-rng_key = jax.random.PRNGKey(0)
-observations = {'x': x_data, 'predictions': y_data, 'lmbda': 3.}
 
 @mcx.model
 def linear_regression(x, lmbda=1.):
@@ -45,18 +43,20 @@ def linear_regression(x, lmbda=1.):
     preds <~ Normal(np.dot(x, coefs), scale)
     return preds
     
+rng_key = jax.random.PRNGKey(0)
 prior_predictive = mcx.predict(rng_key, model, args)
 
 posterior = mcx.sampler(
     rng_key,
     linear_regression,
-    args,
-    observations,
+    (x_data, 3),
+    {'pred': y_data},
     HMC(100),
 ).run()
 
-evaluated_model = mcx.evaluate(model, posterior)
-posterior_predictive = mcx.predict(rng_key, evaluated_model, args)
+predict = mcx.evaluate(model, trace)
+posterior_predictive = mcx.predict(rng_key, predict, x_data)
+
 ```
 
 ## MCX's future
