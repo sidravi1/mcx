@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/rlouf/mcx/blob/compiler-refactor/docs/source/_static/logo.png" height=200></img>
+  <img src="https://github.com/rlouf/mcx/blob/compiler-refactor/docs/source/_static/logo.png" height=120></img>
 </p>
 
 <h3 align="center">
