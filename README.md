@@ -1,7 +1,7 @@
-<h2 align="center">
-  /ˈmɪks/   
-</h2>
-   
+<p align="center">
+  <img src="https://github.com/rlouf/mcx/blob/compiler-refactor/docs/source/_static/logo.png" height=200></img>
+</p>
+
 <h3 align="center">
  XLA-rated Bayesian inference
 </h3>
