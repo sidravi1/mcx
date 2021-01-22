@@ -1,15 +1,14 @@
 """Sample from the multivariate distribution defined by the model."""
 from datetime import datetime
 from typing import Any, Callable, Dict, Iterator, Optional, Tuple
-import warnings
-
-import numpy as np
-from tqdm import tqdm
 
 import jax
 import jax.numpy as jnp
-import mcx
+import numpy as np
 from jax.flatten_util import ravel_pytree as jax_ravel_pytree
+from tqdm import tqdm
+
+import mcx
 from mcx.jax import ravel_pytree as mcx_ravel_pytree
 
 __all__ = ["sample_joint", "sampler"]
@@ -618,7 +617,9 @@ def build_loglikelihoods(model, args, observations):
     """Function to compute the loglikelihood contribution
     of each variable.
     """
-    loglikelihoods = jax.partial(mcx.log_prob_contributions(model), **observations, **args)
+    loglikelihoods = jax.partial(
+        mcx.log_prob_contributions(model), **observations, **args
+    )
     return loglikelihoods
 
 
