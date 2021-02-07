@@ -115,7 +115,7 @@ def online_gelman_rubin():
     w_init, w_update, w_covariance = welford_algorithm(True)
 
     def init(num_chains):
-        """ Initialise the online gelman/rubin estimator
+        """Initialise the online gelman/rubin estimator
 
         Parameters
         ----------
@@ -131,7 +131,7 @@ def online_gelman_rubin():
         return GelmanRubinState(w_state, 0)
 
     def update(chain_state, rhat_state):
-        """ Update rhat estimates
+        """Update rhat estimates
 
         Parameters
         ----------
