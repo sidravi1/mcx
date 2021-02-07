@@ -8,10 +8,10 @@ from tqdm import tqdm
 import mcx
 from mcx import sample_forward
 from mcx.compiler import compile_to_loglikelihoods, compile_to_logpdf
+from mcx.diagnostics import online_gelman_rubin
 from mcx.jax import progress_bar_factory
 from mcx.jax import ravel_pytree as mcx_ravel_pytree
 from mcx.trace import Trace
-from mcx.diagnostics import online_gelman_rubin
 
 __all__ = ["sampler"]
 
@@ -498,7 +498,7 @@ def sample_loop(
             state, _, ravelled_state = update_loop(state, key)
             rhat_state = update_rhat(state, rhat_state)
             chain.append(ravelled_state)
-            progress.set_postfix({"rhat": rhat_state.rhat})
+            progress.set_postfix({"rhat": jnp.array_str(rhat_state.rhat, precision=2)})
     chain = jnp.stack(chain)
     chain = jax.vmap(unravel_fn)(chain)
     last_state = state
