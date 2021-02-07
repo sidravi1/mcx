@@ -48,11 +48,6 @@ def welford_algorithm(is_diagonal_matrix: bool) -> Tuple[Callable, Callable, Cal
         When True the algorithm adapts and returns a diagonal mass matrix
         (default), otherwise adaps and returns a dense mass matrix.
 
-    Note
-    ----
-    It might seem pedantic to separate the Welford algorithm from mass adaptation,
-    but this covariance estimator is used in other parts of the library.
-
     .. math:
         M_{2,n} = M_{2, n-1} + (x_n-\\overline{x}_{n-1})(x_n-\\overline{x}_n)
         \\sigma_n^2 = \\frac{M_{2,n}}{n}
@@ -67,8 +62,8 @@ def welford_algorithm(is_diagonal_matrix: bool) -> Tuple[Callable, Callable, Cal
         Parameters
         ----------
         n_dims: int
-            The number of dimensions of the problem, which corresponds to the size
-            of the corresponding square mass matrix.
+            The number of dimensions of the problem, which corresponds to the number
+            of free random variables.
         """
         sample_size = 0
         mean = jnp.zeros(n_dims)
@@ -120,10 +115,35 @@ def online_gelman_rubin():
     w_init, w_update, w_covariance = welford_algorithm(True)
 
     def init(num_chains):
+        """ Initialise the online gelman/rubin estimator
+
+        Parameters
+        ----------
+        num_chains: int
+            The number of chains being run
+
+        Returns
+        -------
+        GelmanRubinState with all values set to zeros.
+
+        """
         w_state = w_init(num_chains)
         return GelmanRubinState(w_state, 0)
 
     def update(chain_state, rhat_state):
+        """ Update rhat estimates
+
+        Parameters
+        ----------
+        chain_state: array (n_chains, n_dim)
+            The chain state
+        rhat_state: GelmanRubinState
+            The GelmanRubinState from the previous draw
+
+        Returns
+        -------
+        An updated GelmanRubinState object
+        """
         within_state, _ = rhat_state
 
         positions = chain_state.position
