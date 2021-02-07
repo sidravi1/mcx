@@ -11,6 +11,7 @@ import mcx
 from mcx.jax import progress_bar_factory
 from mcx.jax import ravel_pytree as mcx_ravel_pytree
 from mcx.trace import Trace
+from mcx.diagnostics import online_gelman_rubin
 
 __all__ = ["sample_joint", "sampler"]
 
@@ -269,7 +270,7 @@ class sampler(object):
         this method independently gives access to the trace for the warmup
         phase and the values of the parameters for diagnostics.
 
-        Parameters
+        Parameters/
         ----------
         num_warmup_steps
             The number of warmup_steps to perform.
@@ -531,6 +532,8 @@ def sample_loop(
 
     _, unravel_fn = get_unravel_fn()
 
+    init_rhat, update_rhat = online_gelman_rubin()
+    rhat_state = init_rhat(2)
     with tqdm(rng_keys, unit="samples") as progress:
         progress.set_description(
             f"Collecting {num_samples:,} samples across {num_chains:,} chains",
