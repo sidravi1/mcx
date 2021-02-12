@@ -36,12 +36,13 @@ class MvNormal(Distribution):
 
         (mu_event_shape,) = jnp.shape(mu)[-1:]
         covariance_event_shape = jnp.shape(covariance_matrix)[-2:]
+        print(mu_event_shape, covariance_event_shape)
         if (mu_event_shape, mu_event_shape) != covariance_event_shape:
             raise ValueError(
                 (
-                    f"The number of dimensions implied by `mu` ({mu_event_shape}),"
-                    "does not match the dimensions implied by `covariance_matrix` "
-                    f"({covariance_event_shape})"
+                    f"The number of dimensions implied by `mu`(dims = {mu_event_shape})"
+                    ", does not match the dimensions implied by `covariance_matrix`"
+                    f"(dims = {covariance_event_shape})"
                 )
             )
 
