@@ -36,7 +36,6 @@ class MvNormal(Distribution):
 
         (mu_event_shape,) = jnp.shape(mu)[-1:]
         covariance_event_shape = jnp.shape(covariance_matrix)[-2:]
-        print(mu_event_shape, covariance_event_shape)
         if (mu_event_shape, mu_event_shape) != covariance_event_shape:
             raise ValueError(
                 (
