@@ -12,6 +12,8 @@ from mcx.jax import progress_bar_factory
 from mcx.jax import ravel_pytree as mcx_ravel_pytree
 from mcx.trace import Trace
 
+from mcx.diagnostics import online_gelman_rubin
+
 __all__ = ["sample_joint", "sampler"]
 
 
@@ -532,7 +534,7 @@ def sample_loop(
     _, unravel_fn = get_unravel_fn()
 
     init_rhat, update_rhat = online_gelman_rubin()
-    rhat_state = init_rhat(init_state.position.shape[1])
+    rhat_state = init_rhat(init_state)
     with tqdm(rng_keys, unit="samples") as progress:
         progress.set_description(
             f"Collecting {num_samples:,} samples across {num_chains:,} chains",
@@ -542,7 +544,9 @@ def sample_loop(
         state = init_state
         try:
             for _, key in enumerate(progress):
+                rhat_state = update_rhat(state, rhat_state)
                 state, _, ravelled_state = update_loop(state, key)
+                progress.set_postfix({"worst rhat": f"{rhat_state.worst_rhat:0.2f}"})
                 chain.append(ravelled_state)
         except KeyboardInterrupt:
             pass

@@ -54,7 +54,7 @@ def welford_algorithm(is_diagonal_matrix: bool) -> Tuple[Callable, Callable, Cal
         \\sigma_n^2 = \\frac{M_{2,n}}{n}
     """
 
-    def init(n_dims: int) -> WelfordAlgorithmState:
+    def init(n_chains: int, n_dims: int) -> WelfordAlgorithmState:
         """Initialize the covariance estimation.
 
         When the matrix is diagonal it is sufficient to work with an array that contains
@@ -62,16 +62,17 @@ def welford_algorithm(is_diagonal_matrix: bool) -> Tuple[Callable, Callable, Cal
 
         Parameters
         ----------
+        n_chains: int
+            The number of chains being run
         n_dims: int
-            The number of dimensions of the problem, which corresponds to the number
-            of free random variables.
+            The number of variables
         """
         sample_size = 0
-        mean = jnp.zeros(n_dims)
+        mean = jnp.zeros((n_chains, n_dims))
         if is_diagonal_matrix:
-            m2 = jnp.zeros(n_dims)
+            m2 = jnp.zeros((n_chains, n_dims))
         else:
-            m2 = jnp.zeros((n_dims, n_dims))
+            m2 = jnp.zeros((n_chains, n_chains, n_dims))
         return WelfordAlgorithmState(mean, m2, sample_size)
 
     @jax.jit
@@ -84,7 +85,7 @@ def welford_algorithm(is_diagonal_matrix: bool) -> Tuple[Callable, Callable, Cal
         ----------
         state:
             The current state of the Welford Algorithm
-        position: jax.numpy.DeviceArray, shape (1,)
+        value: jax.numpy.DeviceArray, shape (1,)
             The new sample (typically position of the chain) used to update m2
         """
         mean, m2, sample_size = state
@@ -115,7 +116,7 @@ def online_gelman_rubin():
 
     w_init, w_update, w_covariance = welford_algorithm(True)
 
-    def init(num_chains):
+    def init(init_state):
         """Initialise the online gelman/rubin estimator
 
         Parameters
@@ -128,7 +129,8 @@ def online_gelman_rubin():
         GelmanRubinState with all values set to zeros.
 
         """
-        w_state = w_init(num_chains)
+        n_chains, n_dims = init_state.position.shape
+        w_state = w_init(n_chains, n_dims)
         return GelmanRubinState(w_state, 0, jnp.nan)
 
     def update(chain_state, rhat_state):
