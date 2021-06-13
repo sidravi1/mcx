@@ -83,7 +83,7 @@ def welford_algorithm(is_diagonal_matrix: bool) -> Tuple[Callable, Callable, Cal
 
         Parameters
         ----------
-        state:
+        state: WelfordAlgorithmState
             The current state of the Welford Algorithm
         value: jax.numpy.DeviceArray, shape (1,)
             The new sample (typically position of the chain) used to update m2
@@ -138,7 +138,7 @@ def online_gelman_rubin():
 
         Parameters
         ----------
-        chain_state: array (n_chains, n_dim)
+        chain_state: HMCState
             The chain state
         rhat_state: GelmanRubinState
             The GelmanRubinState from the previous draw
@@ -157,6 +157,7 @@ def online_gelman_rubin():
         estimator = ((step - 1) / step) * within_var + between_var
         rhat = jnp.sqrt(estimator / within_var)
         worst_rhat = rhat[jnp.argmax(jnp.abs(rhat - 1.0))]
+
         return GelmanRubinState(within_state, rhat, worst_rhat)
 
     return init, update
