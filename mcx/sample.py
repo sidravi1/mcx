@@ -8,11 +8,10 @@ from jax.flatten_util import ravel_pytree as jax_ravel_pytree
 from tqdm import tqdm
 
 import mcx
+from mcx.diagnostics import online_gelman_rubin
 from mcx.jax import progress_bar_factory
 from mcx.jax import ravel_pytree as mcx_ravel_pytree
 from mcx.trace import Trace
-
-from mcx.diagnostics import online_gelman_rubin
 
 __all__ = ["sample_joint", "sampler"]
 
