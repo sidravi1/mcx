@@ -27,7 +27,8 @@ class WelfordAlgorithmState(NamedTuple):
 class GelmanRubinState(NamedTuple):
     w_state: WelfordAlgorithmState
     rhat: jnp.DeviceArray
-    worst_rhat: jnp.DeviceArray
+    metric: jnp.DeviceArray
+    metric_name: str
 
 
 def welford_algorithm(is_diagonal_matrix: bool) -> Tuple[Callable, Callable, Callable]:
@@ -131,7 +132,7 @@ def online_gelman_rubin():
         """
         n_chains, n_dims = init_state.position.shape
         w_state = w_init(n_chains, n_dims)
-        return GelmanRubinState(w_state, 0, jnp.nan)
+        return GelmanRubinState(w_state, 0, jnp.nan, "worst_rhat")
 
     def update(chain_state, rhat_state):
         """Update rhat estimates
@@ -147,7 +148,7 @@ def online_gelman_rubin():
         -------
         An updated GelmanRubinState object
         """
-        within_state, _, _ = rhat_state
+        within_state, _, _, metric_name = rhat_state
 
         positions = chain_state.position
         within_state = w_update(within_state, positions)
@@ -158,7 +159,7 @@ def online_gelman_rubin():
         rhat = jnp.sqrt(estimator / within_var)
         worst_rhat = rhat[jnp.argmax(jnp.abs(rhat - 1.0))]
 
-        return GelmanRubinState(within_state, rhat, worst_rhat)
+        return GelmanRubinState(within_state, rhat, worst_rhat, metric_name)
 
     return init, update
 

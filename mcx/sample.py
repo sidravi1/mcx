@@ -1,5 +1,5 @@
 """Sample from the multivariate distribution defined by the model."""
-from typing import Any, Callable, Dict, Iterator, Optional, Tuple
+from typing import Any, Callable, Dict, Iterator, Optional, Tuple, Sequence
 
 import jax
 import jax.numpy as jnp
@@ -322,6 +322,9 @@ class sampler(object):
         num_samples: int = 1000,
         num_warmup_steps: int = 1000,
         compile: bool = False,
+        metrics: Sequence[Callable[..., Tuple[Callable, Callable]]] = [
+            online_gelman_rubin
+        ],
         **warmup_kwargs,
     ) -> Trace:
         """Run the posterior inference.
@@ -337,9 +340,13 @@ class sampler(object):
         num_warmup_steps
             The number of warmup_steps to perform.
         compile
-            If False the progress of the warmup and samplig will be displayed.
+            If False the progress of the warmup and sampling will be displayed.
             Otherwise it will use `lax.scan` to iterate (which is potentially
             faster).
+        metrics
+            A list of functions to generate real-time metric when sampling. Only
+            used when `compile` is False. Each function must return two functions -
+            an `init` function and an `update` function.
         warmup_kwargs
             Parameters to pass to the evaluator's warmup.
 
@@ -375,7 +382,12 @@ class sampler(object):
             )
         else:
             last_state, chain = sample_loop(
-                update_one_chain, self.state, self.parameters, rng_keys, self.num_chains
+                update_one_chain,
+                self.state,
+                self.parameters,
+                rng_keys,
+                self.num_chains,
+                metrics,
             )
 
         samples, sampling_info = self.evaluator.make_trace(
@@ -467,6 +479,7 @@ def sample_loop(
     parameters: jnp.DeviceArray,
     rng_keys: jnp.DeviceArray,
     num_chains: int,
+    metrics: Sequence[Callable[..., Tuple[Callable, Callable]]],
 ) -> Tuple:
     """Sample using a Python loop.
 
@@ -508,8 +521,14 @@ def sample_loop(
         The parameters of the evaluator.
     rng_keys: array (n_samples,)
         JAX PRNGKeys used for each sampling step.
-    num_chains
+    num_chains : int
         The number of chains
+    call_backs:
+        The functions to run after each state update
+    metrics:
+        A list of functions to generate real-time metrics when sampling.
+        Each function must return two functions - an `init` function and
+        an `update` function.
 
     Returns
     -------
@@ -532,9 +551,15 @@ def sample_loop(
 
     _, unravel_fn = get_unravel_fn()
 
-    init_rhat, update_rhat = online_gelman_rubin()
-    rhat_state = init_rhat(init_state)
-    with tqdm(rng_keys, unit="samples") as progress:
+    metrics_init, metrics_update = [], []
+    for metric_func in metrics:
+        init_func, update_func = metric_func()
+        metrics_init.append(init_func)
+        metrics_update.append(update_func)
+
+    metrics_state = [init_func(init_state) for init_func in metrics_init]
+
+    with tqdm(rng_keys, unit="samples", mininterval=0.1) as progress:
         progress.set_description(
             f"Collecting {num_samples:,} samples across {num_chains:,} chains",
             refresh=False,
@@ -543,9 +568,16 @@ def sample_loop(
         state = init_state
         try:
             for _, key in enumerate(progress):
-                rhat_state = update_rhat(state, rhat_state)
+                metrics_state = [
+                    update_func(state, m_state)
+                    for update_func, m_state in zip(metrics_update, metrics_state)
+                ]
                 state, _, ravelled_state = update_loop(state, key)
-                progress.set_postfix({"worst rhat": f"{rhat_state.worst_rhat:0.2f}"})
+                postfix_dict = {
+                    m_state.metric_name: f"{m_state.metric:0.2f}"
+                    for m_state in metrics_state
+                }
+                progress.set_postfix(postfix_dict)
                 chain.append(ravelled_state)
         except KeyboardInterrupt:
             pass
