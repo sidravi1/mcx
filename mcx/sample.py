@@ -381,6 +381,8 @@ class sampler(object):
                 update_one_chain, self.state, self.parameters, rng_keys, self.num_chains
             )
         else:
+            if metrics is None:
+                metrics = ()
             last_state, chain = sample_loop(
                 update_one_chain,
                 self.state,
@@ -577,7 +579,8 @@ def sample_loop(
                     m_state.metric_name: f"{m_state.metric:0.2f}"
                     for m_state in metrics_state
                 }
-                progress.set_postfix(postfix_dict)
+                if postfix_dict:
+                    progress.set_postfix(postfix_dict)
                 chain.append(ravelled_state)
         except KeyboardInterrupt:
             pass
