@@ -344,7 +344,7 @@ class sampler(object):
             Otherwise it will use `lax.scan` to iterate (which is potentially
             faster).
         metrics
-            A list of functions to generate real-time metric when sampling. Only
+            A list of functions to generate online metrics when sampling. Only
             used when `compile` is False. Each function must return two functions -
             an `init` function and an `update` function.
         warmup_kwargs
@@ -357,6 +357,10 @@ class sampler(object):
             the inference process (e.g. divergences for evaluators in the
             HMC family).
 
+        Notes
+        -----
+        Passing functions to `metrics` may slow down sampling. It may be useful to have
+        online metrics when building or diagnosing a model.
         """
         if not self.is_warmed_up:
             self.warmup(num_warmup_steps, compile, **warmup_kwargs)
